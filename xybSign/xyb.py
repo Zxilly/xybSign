@@ -120,9 +120,12 @@ class XybSigner:
 
     def auto_sign_by_time(self):
         current = get_beijing_time()
+        self.logger.info("当前时间: %s", current)
         if current.hour > 12:
+            self.logger.info("当前时间大于12点，将进行签退")
             self.sign_out()
         else:
+            self.logger.info("当前时间小于12点，将进行签到")
             self.sign_in()
 
     def sign_in(self):

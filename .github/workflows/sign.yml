@@ -3,7 +3,7 @@ name: Sign
 on:
   schedule:
     - cron: 0 14 * * *
-    - cron: 0 6 * * *
+    - cron: 0 22 * * *
   workflow_dispatch:
 
 permissions:
@@ -14,6 +14,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: "Asia/Shanghai"
+
       - uses: actions/checkout@v3
       - name: Set up Python 3.11
         uses: actions/setup-python@v3
