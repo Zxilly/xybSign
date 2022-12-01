@@ -13,13 +13,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      JOB_URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-
     steps:
       - uses: szenius/set-timezone@v1.0
         with:
           timezoneLinux: "Asia/Shanghai"
+
+      - name: Set Job URL
+        id: url
+        run: echo "url=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
 
       - uses: actions/checkout@v3
 
@@ -48,7 +49,7 @@ jobs:
           user_id: ${{ secrets.ZNOTIFY_USER_ID }}
           content: 校友邦签到成功
           title: 校友邦
-          long: "[Job Url](${{ env.JOB_URL }})"
+          long: "[Job Url](${{ steps.url.outputs.url }})"
 
       - name: Notify
         if: failure()
@@ -57,4 +58,4 @@ jobs:
           user_id: ${{ secrets.ZNOTIFY_USER_ID }}
           content: 校友邦签到失败
           title: 校友邦
-          long: "[Job Url](${{ env.JOB_URL }})"
+          long: "[Job Url](${{ steps.url.outputs.url }})"
