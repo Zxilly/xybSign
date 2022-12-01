@@ -6,12 +6,14 @@ from xybSign.session import XybSession
 from xybSign.utils import get_beijing_time
 
 
-class XybSigner:
-    class __SignType(Enum):
-        SIGN_IN = auto()
-        SIGN_OUT = auto()
+class SignType(Enum):
+    SIGN_IN = auto()
+    SIGN_OUT = auto()
 
-    def __init__(self, phoneNum: str, password: str, adcode: str):
+
+class XybSigner:
+
+    def __init__(self, phone_num: str, password: str, adcode: str):
         self.train_type = None
         self.sign_lng = None
         self.sign_lat = None
@@ -24,11 +26,12 @@ class XybSigner:
         self.session_id = None
         self.loginer_id = None
 
-        self.phoneNum = phoneNum
+        self.phone_num = phone_num
         self.password = password
         self.adcode = adcode
 
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+        logging.basicConfig(level=logging.INFO,
+                            format="%(asctime)s %(levelname)s %(message)s")
         self.logger = logging.getLogger("xybSign")
 
         self.session = XybSession()
@@ -39,7 +42,7 @@ class XybSigner:
 
     def __init_user_info(self):
         login_data = dict(
-            username=self.phoneNum,
+            username=self.phone_num,
             password=hashlib.md5(self.password.encode()).hexdigest(),
             openId="ooru94rWRmf_5CKxp21bzRxXw5ct",
             unionId="oHY-uwUmPNik8tNCSroR4Aiq4WBj",
@@ -50,7 +53,8 @@ class XybSigner:
             deviceId="",
         )
 
-        resp = self.session.post("https://xcx.xybsyw.com/login/login.action", login_data)
+        resp = self.session.post(
+            "https://xcx.xybsyw.com/login/login.action", login_data)
         resp.raise_for_status()
         resp_json = resp.json()
         if resp_json["code"] == "200":
@@ -63,14 +67,16 @@ class XybSigner:
             raise Exception(f"登录失败：{resp_json['msg']}")
 
     def __init_ip_info(self):
-        resp = self.session.get("https://xcx.xybsyw.com/behavior/Duration!getIp.action")
+        resp = self.session.get(
+            "https://xcx.xybsyw.com/behavior/Duration!getIp.action")
         resp.raise_for_status()
         data = resp.json()
         if data["code"] == "200":
             self.ip = data["data"]["ip"]
 
     def __init_train_info(self):
-        resp = self.session.get("https://xcx.xybsyw.com/student/clock/GetPlan!getDefault.action")
+        resp = self.session.get(
+            "https://xcx.xybsyw.com/student/clock/GetPlan!getDefault.action")
         resp.raise_for_status()
         resp_json = resp.json()
         if resp_json["code"] == "200":
@@ -84,7 +90,8 @@ class XybSigner:
             raise Exception(f"获取默认实习失败：{resp_json['msg']}")
 
         post_data = dict(traineeId=self.train_id)
-        resp = self.session.post("https://xcx.xybsyw.com/student/clock/GetPlan!detail.action", data=post_data)
+        resp = self.session.post(
+            "https://xcx.xybsyw.com/student/clock/GetPlan!detail.action", data=post_data)
         resp.raise_for_status()
         resp_json = resp.json()
         if resp_json["code"] == "200":
@@ -99,7 +106,8 @@ class XybSigner:
                 self.sign_lat = resp_json["data"]["postInfo"]["lat"]
                 self.sign_lng = resp_json["data"]["postInfo"]["lng"]
                 self.sign_address = resp_json["data"]["postInfo"]["address"]
-                self.logger.info(f"将使用获取到的实习坐标：{self.sign_lat}, {self.sign_lng}")
+                self.logger.info(
+                    f"将使用获取到的实习坐标：{self.sign_lat}, {self.sign_lng}")
             else:
                 self.logger.critical("未获取到实习坐标")
                 raise Exception("未获取到实习坐标")
@@ -115,7 +123,8 @@ class XybSigner:
             travelCodeImg=""
         )
 
-        resp = self.session.post('https://xcx.xybsyw.com/student/clock/saveEpidemicSituation.action', data=post_data)
+        resp = self.session.post(
+            'https://xcx.xybsyw.com/student/clock/saveEpidemicSituation.action', data=post_data)
         resp.raise_for_status()
 
     def auto_sign_by_time(self):
@@ -124,22 +133,24 @@ class XybSigner:
         if current.hour > 12:
             self.logger.info("当前时间大于12点，将进行签退")
             self.sign_out()
+            return SignType.SIGN_OUT
         else:
             self.logger.info("当前时间小于12点，将进行签到")
             self.sign_in()
+            return SignType.SIGN_IN
 
     def sign_in(self):
         self.__report_epidemic()
-        self.__sign(self.__SignType.SIGN_IN)
+        self.__sign(SignType.SIGN_IN)
 
     def sign_out(self):
         self.__report_epidemic()
-        self.__sign(self.__SignType.SIGN_OUT)
+        self.__sign(SignType.SIGN_OUT)
 
-    def __sign(self, sign_type: __SignType):
+    def __sign(self, sign_type: SignType):
         is_update = False
 
-        if sign_type == self.__SignType.SIGN_IN:
+        if sign_type == SignType.SIGN_IN:
             if self.is_sign_out:
                 raise Exception("已签退，无法签到")
 
@@ -147,6 +158,7 @@ class XybSigner:
                 self.logger.critical("重复签到")
                 is_update = True
             status = 2
+            self.logger.info("正在签到...")
         else:
             if not self.is_sign_in:
                 raise Exception("未签到，无法签退")
@@ -155,6 +167,7 @@ class XybSigner:
                 self.logger.warning("重复签退")
                 is_update = True
             status = 1
+            self.logger.info("正在签退...")
 
         post_data = {
             'traineeId': self.train_id,
